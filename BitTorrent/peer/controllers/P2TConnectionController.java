@@ -31,14 +31,18 @@ public class P2TConnectionController {
 
     public static Message status() {
         HashMap<String, Object> body = new HashMap<>();
-        body.put("ip", PeerApp.getPeerIP());
-        body.put("port", PeerApp.getPeerPort());
+        body.put("command", "status");
+        body.put("response", "ok");
+        body.put("peer", PeerApp.getPeerIP());
+        body.put("listen_port", PeerApp.getPeerPort());
         return new Message(body, Message.Type.response);
     }
 
     public static Message getFilesList() {
         Map<String, String> fileMap = FileUtils.listFilesInFolder(PeerApp.getSharedFolderPath());
         HashMap<String, Object> body = new HashMap<>();
+        body.put("command", "get_files_list");
+        body.put("response", "ok");
         body.put("files", fileMap);
         return new Message(body, Message.Type.response);
     }

@@ -18,7 +18,7 @@ public class ListenerThread extends Thread {
         } catch (IOException e) {
             try {
                 socket.close();
-            } catch (IOException ex) {
+            } catch (IOException ignored) {
             }
         }
     }

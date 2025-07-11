@@ -39,7 +39,6 @@ public class TrackerConnectionController {
         String ip = parts[0];
         int port = Integer.parseInt(parts[1]);
         String md5 = matchingPeers.get(selectedPeer);
-
         HashMap<String, Object> body = new HashMap<>();
         body.put("response", "peer_found");
         body.put("peer_have", ip);

@@ -12,7 +12,6 @@ import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class PeerApp {
-    // TODO: static fields for peer's ip, port, shared folder path, sent files, received files, tracker connection thread, p2p listener thread, torrent p2p threads
     public static final int TIMEOUT_MILLIS = 500;
     public static String peerIp;
     public static int peerPort;
@@ -82,7 +81,7 @@ public class PeerApp {
             if (trackerConnectionThread == null || !trackerConnectionThread.isAlive()) {
                 Socket socket = new Socket(trackerIp, trackerPort);
                 trackerConnectionThread = new P2TConnectionThread(socket);
-                new Thread(trackerConnectionThread).start();
+                trackerConnectionThread.start();
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -164,70 +163,81 @@ public class PeerApp {
         return trackerConnectionThread;
     }
 
-        // 1. Check if file already exists
-        // 2. Create download request message
-        // 3. Connect to peer
-        // 4. Send request
-        // 5. Receive file data
-        // 6. Save file
-        // 7. Verify file integrity
-        // 8. Update received files list
-
-    public static void requestDownload(String ip, int port, String filename, String md5) throws Exception {
+    //public static boolean requestDownload(String ip, int port, String filename, String md5) {
+//    try {
+//        File file = new File(repoPath, filename);
+//
+//        HashMap<String, Object> body = new HashMap<>();
+//        body.put("name", filename);
+//        body.put("md5", md5);
+//        body.put("receiver_ip", peerIp);
+//        body.put("receiver_port", peerPort);
+//
+//        Message message = new Message(body, Message.Type.download_request);
+//        String json = JSONUtils.toJson(message);
+//
+//        Socket socket = new Socket(ip, port);
+//        socket.setSoTimeout(TIMEOUT_MILLIS);
+//
+//        BufferedOutputStream out = new BufferedOutputStream(socket.getOutputStream());
+//        BufferedInputStream in = new BufferedInputStream(socket.getInputStream());
+//
+//        out.write((json + "\n").getBytes(StandardCharsets.UTF_8));
+//        out.flush();
+//
+//        FileOutputStream fos = new FileOutputStream(file);
+//        byte[] buffer = new byte[4096];
+//        int bytesRead;
+//        while ((bytesRead = in.read(buffer)) != -1) {
+//            fos.write(buffer, 0, bytesRead);
+//        }
+//
+//        fos.close();
+//        in.close();
+//        out.close();
+//        socket.close();
+//
+//        return true;
+//    } catch (Exception e) {
+//        return false;
+//    }
+//}
+    public static boolean requestDownload(String ip, int port, String filename, String md5) {
         File file = new File(repoPath, filename);
-        if (file.exists()) {
-            System.out.println("You already have the file!");
-            return;
-        }
-
-        HashMap<String, Object> body = new HashMap<>();
-        body.put("name", filename);
-        body.put("md5", md5);
-        body.put("receiver_ip", peerIp);
-        body.put("receiver_port", peerPort);
-
-        Message message = new Message(body, Message.Type.download_request);
-        String json = JSONUtils.toJson(message);
-
-        Socket socket;
-        try {
-            socket = new Socket(ip, port);
+        try (
+            Socket socket = new Socket(ip, port);
+            BufferedOutputStream out = new BufferedOutputStream(socket.getOutputStream());
+            BufferedInputStream in = new BufferedInputStream(socket.getInputStream());
+            FileOutputStream fos = new FileOutputStream(file)
+        ) {
             socket.setSoTimeout(TIMEOUT_MILLIS);
-        } catch (IOException e) {
-            System.out.println("No peer has the file!");
-            return;
-        }
 
-        BufferedOutputStream out = new BufferedOutputStream(socket.getOutputStream());
-        BufferedInputStream in = new BufferedInputStream(socket.getInputStream());
+            HashMap<String, Object> body = new HashMap<>();
+            body.put("name", filename);
+            body.put("md5", md5);
+            body.put("receiver_ip", peerIp);
+            body.put("receiver_port", peerPort);
+            Message message = new Message(body, Message.Type.download_request);
+            String json = JSONUtils.toJson(message);
 
-        out.write((json + "\n").getBytes(StandardCharsets.UTF_8));
-        out.flush();
+            out.write((json + "\n").getBytes(StandardCharsets.UTF_8));
+            out.flush();
 
-        FileOutputStream fos = new FileOutputStream(file);
-        byte[] buffer = new byte[4096];
-        int bytesRead;
-        while ((bytesRead = in.read(buffer)) != -1) {
-            fos.write(buffer, 0, bytesRead);
-        }
+            byte[] buffer = new byte[4096];
+            int bytesRead;
+            boolean receivedData = false;
 
-        fos.close();
-        in.close();
-        out.close();
-        socket.close();
-
-        String receivedMd5 = MD5Hash.HashFile(file.getAbsolutePath());
-        if (!md5.equals(receivedMd5)) {
+            while ((bytesRead = in.read(buffer)) != -1) {
+                fos.write(buffer, 0, bytesRead);
+                receivedData = true;
+            }
+            return receivedData;
+        } catch (Exception e) {
+            e.printStackTrace();
             file.delete();
-            System.out.println("The file has been downloaded from peer but is corrupted!");
-            return;
+            return false;
         }
-
-        String sender = ip + ":" + port;
-        String record = filename + " " + md5;
-        addReceivedFile(sender, record);
-
-        System.out.println("File downloaded successfully: " + filename);
     }
+
 
 }

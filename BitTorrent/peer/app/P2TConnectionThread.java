@@ -23,6 +23,7 @@ public class P2TConnectionThread extends ConnectionThread {
 			dataInputStream.readUTF();
 			Message message1 = P2TConnectionController.status();
 			sendMessage(message1);
+
 			dataInputStream.readUTF();
 			Message message2 = P2TConnectionController.getFilesList();
 			sendMessage(message2);
